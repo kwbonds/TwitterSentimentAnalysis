@@ -14,9 +14,10 @@ library(ggplot2)
 library(caret)
 library(knitr)
 library(quanteda)
+library(doSNOW)
 ```
 
-The following is an analysis of the _Twitter Sentiment Analysis Dataset_ available at: http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: https://github.com/kwbonds/TwitterSentimentAnalysis. The file is > 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called _data_ (see code below).
+The following is an analysis of the _Twitter Sentiment Analysis Dataset_ available at: http://thinknook.com/twitter-sentiment-analysis-training-corpus-data set-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: https://github.com/kwbonds/TwitterSentimentAnalysis. The file is > 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called _data_ (see code below).
 
 ## Load Data from .zip file
 
@@ -36,22 +37,22 @@ str(raw_tweets)
 ```{r head, echo=FALSE}
 kable(head(raw_tweets))
 ```
-We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data and tokenization will undoubtedly create many more features than can be handled efficiently. We should probably train on about 5% of this data and use as much of the rest as we want to test. we will ofcouse make sure to maintain the proportionality along the way. Let's see what that is.
+We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data. Tokenization will undoubtedly create many more features than can be handled efficiently if we were to try to use this much data. We should probably train on about 5% of this data and use as much of the rest as we want to test. We will make sure to maintain the proportionality along the way. Let's see what that is.
 
 What proportion of "Sentiment" do we have in our corpus?
 ```{r}
 prop.table(table(raw_tweets[, "Sentiment"]))
 ```
-Looks like it is almost 50/50. Nice. Even though (in this case) a random sample would probably give us very similar proportions, we will use techniques to hard maintain this balance along the way. i.e. just as if we had an unbalanced dataset.
+Looks like almost 50/50. Nice. In this case a random sample would probably give us very similar proportions, we will use techniques to hard maintain this proportion i.e. just as if we had an unbalanced data set.
 
 ```{r}
 prop.table(table(raw_tweets[, "SentimentSource"]))
 ```
-I'm not sure what this _SentimentSource_ column is, but it looks like the vast majority is "Sentiment140". I think we'll ignore it for now.
+I'm not sure what this _SentimentSource_ column is, but it looks like the vast majority is "Sentiment140". We'll ignore it for now.
 
 ## Stratified sample
 
-Let's create a data partition. First we will take 4% of the data for training and validation. We'll reserve the indexes so that we can further partition later
+Let's create a data partition. First we'll take 4% of the data for training and validation. We'll reserve the indexes so we can further partition later.
 
 ```{r}
 set.seed(42)
@@ -63,17 +64,17 @@ test <- train_validate[-train_indexes, ]
 nrow(train)
 ```
 
-Check proportions just to be safe.
+So, now we have 3789 tweets. Check proportions just to be safe.
 
 ```{r}
 prop.table(table(train$Sentiment))
 ```
 
-We can see that we have almost exactly the same proportions. 
+And we have almost exactly the same proportions as our original, much larger, data set. 
 
 ## Tokenization
 
-Let's now tokenize our text data. This is the first step in turning raw text into features. We want to make the individual words as features and do some cleanup. We will also engineer some features and maybe create some combinations of words a little later. The big question is: should we remove numbers, punctuation, hyphens, and symbols?
+Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later. There are lots of decisions to be made when doing this sort of text analysis. Do we want our features to contain punctuation, hyphenated words, etc.? Let's try removing some of this to make things simpler. 
 
 ```{r}
 train_tokens <- tokens(train$SentimentText, what = "word", 
@@ -87,7 +88,7 @@ Let's look at a few to illustrate what we did.
 train_tokens[[29]]
 ```
 
-These are the tokens from the 29th record from the training data set. i.e. the tweet below. 
+These are the tokens, from the 29th record, of the training data set. i.e. the tweet below. 
 
 ```{r}
 train[29,2]
@@ -97,7 +98,7 @@ Also this one:
 ```{r}
 train_tokens[[26]]
 ```
-And we see that we have some upper and lower case. Let's change all to lower.
+We see some upper case is present. Let's change all to lower to reduce the possible combinations.
 
 ```{r}
 train_tokens <- tokens_tolower(train_tokens)
@@ -122,7 +123,7 @@ train_tokens[[29]]
 
 ## Stemming
 
-Next we can stem the tokens. Stemming is a method of getting to the word root. This way we won't have multiple versions of the same root word. We can illustrate below.
+Next, we need to stem the tokens. Stemming is a method of getting to the word root. This way, we won't have multiple versions of the same root word. We can illustrate below.
 
 ```{r}
 train_tokens <- tokens_wordstem(train_tokens, language = "english")
@@ -141,13 +142,67 @@ train_dfm <- dfm(train_tokens, tolower = FALSE)
 train_dfm <- as.matrix(train_dfm)
 ```
 
-You can see that we now have a matrix that is the length of our original data frame but now has 7758 features in our term. 
+We now have a matrix--the length of our original data frame--now with 7758 features in the term. That is a lot of features. We are definitely suffering from the "curse of demensionality". We'll need to do some feature reduction at some point.
+
 ```{r}
 dim(train_dfm)
 ```
-Let's look at the first 6 documents (and rows) and the first 20 features of the term (as columns).
+Let's look at the first 6 documents (as rows) and the first 20 features of the term (as columns).
 
 ```{r}
 kable(head(train_dfm[1:6, 1:20]))
 ```
+
+Now we have a nice DFM. The columns are the features, and the column-space is the term. The rows are the documents and the row-space are the corpus.
+
+```{r}
+train_df <- cbind("Sentiment" = as.factor(train$Sentiment), as.data.frame(train_dfm))
+kable(train_df[1:10, 1:15])
+```
+
+```{r}
+# names(train_df) <- make.names(names(train_df))
+names(train_df[60:75])
+```
+
+Unfortunately, R cannot handle some of these tokens as columns in a data frame. The names cannot begin with an integer or a special character for example. We need to fix these. Here is how.
+
+```{r}
+names(train_df) <- make.names(names(train_df), unique = TRUE)
+names(train_df[60:75])
+```
+
+## Setting up for K-fold Cross Validation
+
+We will set up a control plan for 30 models. We should be able to use this plan for all our subsequent modeling. 
+```{r}
+set.seed(42)
+
+cv_folds <- createMultiFolds(train$Sentiment, k = 10, times = 3)
+
+cv_cntrl <- trainControl(method = "repeatedcv", number = 10,
+                         repeats = 3, index = cv_folds)
+```
+
+## Train the First Model
+
+Let's train the first model to see what kind of accuracy we have. Let's use a single decision tree algorithm. This algorithm will, however, create 30 * 7 or 210 models. 
+
+```{r rpart_model_1, eval=FALSE}
+rpart1 <- train(Sentiment ~ ., data = train_df, method = "rpart", 
+                    trControl = cv_cntrl, tuneLength = 7)
+```
+
+```{r rpart1_load, echo=FALSE}
+load("rpart1.rds")
+```
+
+
+```{r rpart_model_1_output}
+rpart1
+```
+
+Outputting the model results we see that we have an almost 64% accuracy already. That isn't bad. Really we want to get to about 90% if we can. This is already better than a coin flip and we haven't even begun. Let's take some steps to improve things.
+
+## To be continued...
 
