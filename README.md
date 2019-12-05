@@ -121,7 +121,7 @@ train_tokens <- tokens(train$SentimentText, what = "word",
                        remove_symbols = TRUE, remove_hyphens = TRUE)
 ```
 
-Let's look at one to illustrate what we did.
+Let's look at a few to illustrate what we did.
 
 ``` r
 train_tokens[[29]]
@@ -136,7 +136,7 @@ train_tokens[[29]]
     ## [19] "haven't"          "heard"            "about"           
     ## [22] "ticks"            "x"
 
-These are the tokens from the 29th record from the training data set. i.e. the tweet below which
+These are the tokens from the 29th record from the training data set. i.e. the tweet below.
 
 ``` r
 train[29,2]
@@ -146,6 +146,8 @@ train[29,2]
     ##   SentimentText                                                            
     ##   <chr>                                                                    
     ## 1 #millsthemusical  @lauzzaa i hope you've listened to some of these songs…
+
+Also this one:
 
 ``` r
 train_tokens[[26]]
@@ -171,20 +173,19 @@ train_tokens[[26]]
 Remove Stopwords
 ----------------
 
-Let's remove stopwords using the quanteda packages built in *stopwords()* function.
+Let's remove stopwords using the quanteda packages built in *stopwords()* function and look at record 26 again.
 
 ``` r
 train_tokens <- tokens_select(train_tokens, stopwords(), 
                               selection = "remove")
-```
-
-``` r
 train_tokens[[26]]
 ```
 
     ##  [1] "quot"         "salvation"    "come"         "us"          
     ##  [5] "chosen"       "us"           "love"         "quot"        
     ##  [9] "love"         "@phatfish"    "@nfellingham"
+
+And record 29 again:
 
 ``` r
 train_tokens[[29]]
@@ -210,3 +211,20 @@ train_tokens[[29]]
     ##  [9] "heard"        "tick"         "x"
 
 You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
+
+Create a Document-feature Matrix
+--------------------------------
+
+``` r
+train_dfm <- dfm(train_tokens, tolower = FALSE)
+```
+
+``` r
+train_dfm <- as.matrix(train_dfm)
+```
+
+``` r
+dim(train_dfm)
+```
+
+    ## [1] 3789 7775
