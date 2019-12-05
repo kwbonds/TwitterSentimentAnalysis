@@ -81,3 +81,51 @@ train_tokens <- tokens(train$SentimentText, what = "word",
                        remove_symbols = TRUE, remove_hyphens = TRUE)
 ```
 
+Let's look at one to illustrate what we did. 
+
+```{r}
+train_tokens[[29]]
+```
+
+These are the tokens from the 29th record from the training data set. i.e. the tweet below which 
+
+```{r}
+train[29,2]
+```
+```{r}
+train_tokens[[26]]
+```
+And we see that we have some upper and lower case. Let's change all to lower.
+
+```{r}
+train_tokens <- tokens_tolower(train_tokens)
+train_tokens[[26]]
+```
+
+## Remove Stopwords
+
+Let's remove stopwords using the quanteda packages built in _stopwords()_ function.
+
+```{r}
+train_tokens <- tokens_select(train_tokens, stopwords(), 
+                              selection = "remove")
+```
+
+```{r}
+train_tokens[[26]]
+```
+```{r}
+train_tokens[[29]]
+```
+
+## Stemming
+
+Next we can stem the tokens. Stemming is a method of getting to the word root. This way we won't have multiple versions of the same root word. We can illustrate below.
+
+```{r}
+train_tokens <- tokens_wordstem(train_tokens, language = "english")
+train_tokens[[29]]
+```
+
+You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
+

@@ -120,3 +120,93 @@ train_tokens <- tokens(train$SentimentText, what = "word",
                        remove_numbers = TRUE, remove_punct = TRUE, remove_twitter = FALSE,
                        remove_symbols = TRUE, remove_hyphens = TRUE)
 ```
+
+Let's look at one to illustrate what we did.
+
+``` r
+train_tokens[[29]]
+```
+
+    ##  [1] "#millsthemusical" "@lauzzaa"         "i"               
+    ##  [4] "hope"             "you've"           "listened"        
+    ##  [7] "to"               "some"             "of"              
+    ## [10] "these"            "songs"            "they"            
+    ## [13] "are"              "so"               "funny"           
+    ## [16] "L"                "i"                "still"           
+    ## [19] "haven't"          "heard"            "about"           
+    ## [22] "ticks"            "x"
+
+These are the tokens from the 29th record from the training data set. i.e. the tweet below which
+
+``` r
+train[29,2]
+```
+
+    ## # A tibble: 1 x 1
+    ##   SentimentText                                                            
+    ##   <chr>                                                                    
+    ## 1 #millsthemusical  @lauzzaa i hope you've listened to some of these songs…
+
+``` r
+train_tokens[[26]]
+```
+
+    ##  [1] "quot"         "Salvation"    "has"          "come"        
+    ##  [5] "to"           "us"           "He's"         "chosen"      
+    ##  [9] "us"           "in"           "love"         "quot"        
+    ## [13] "Love"         "it"           "@phatfish"    "@nfellingham"
+
+And we see that we have some upper and lower case. Let's change all to lower.
+
+``` r
+train_tokens <- tokens_tolower(train_tokens)
+train_tokens[[26]]
+```
+
+    ##  [1] "quot"         "salvation"    "has"          "come"        
+    ##  [5] "to"           "us"           "he's"         "chosen"      
+    ##  [9] "us"           "in"           "love"         "quot"        
+    ## [13] "love"         "it"           "@phatfish"    "@nfellingham"
+
+Remove Stopwords
+----------------
+
+Let's remove stopwords using the quanteda packages built in *stopwords()* function.
+
+``` r
+train_tokens <- tokens_select(train_tokens, stopwords(), 
+                              selection = "remove")
+```
+
+``` r
+train_tokens[[26]]
+```
+
+    ##  [1] "quot"         "salvation"    "come"         "us"          
+    ##  [5] "chosen"       "us"           "love"         "quot"        
+    ##  [9] "love"         "@phatfish"    "@nfellingham"
+
+``` r
+train_tokens[[29]]
+```
+
+    ##  [1] "#millsthemusical" "@lauzzaa"         "hope"            
+    ##  [4] "listened"         "songs"            "funny"           
+    ##  [7] "l"                "still"            "heard"           
+    ## [10] "ticks"            "x"
+
+Stemming
+--------
+
+Next we can stem the tokens. Stemming is a method of getting to the word root. This way we won't have multiple versions of the same root word. We can illustrate below.
+
+``` r
+train_tokens <- tokens_wordstem(train_tokens, language = "english")
+train_tokens[[29]]
+```
+
+    ##  [1] "#millsthemus" "@lauzzaa"     "hope"         "listen"      
+    ##  [5] "song"         "funni"        "l"            "still"       
+    ##  [9] "heard"        "tick"         "x"
+
+You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
