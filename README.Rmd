@@ -15,7 +15,9 @@ library(caret)
 library(knitr)
 ```
 
-## R Markdown
+The following is an analysis of the _Twitter Sentiment Analysis Dataset_ available at: http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: https://github.com/kwbonds/TwitterSentimentAnalysis. The file is > 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called _data_ (see code below).
+
+## Load Data from .zip file
 
 ```{r raw_tweets, warning=FALSE, message=FALSE}
 raw_tweets <-  read_csv(unzip("data/Sentiment-Analysis-Dataset.zip"))
@@ -24,14 +26,24 @@ raw_tweets <-  read_csv(unzip("data/Sentiment-Analysis-Dataset.zip"))
 
 ## The Data
 
+Take a quick look at what we have.
+
+```{r str}
+str(raw_tweets)
+```
+
 ```{r head, echo=FALSE}
 kable(head(raw_tweets))
 ```
+We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data and tokenization will undoubtedly create many more features than can be handled efficiently. We should probably train on about 5% of this data and use as much of the rest as we want to test. we will ofcouse make sure to maintain the proportionality along the way. Let's see what that is.
 
+What proportion of "Sentiment" do we have in our corpus?
 ```{r}
 prop.table(table(raw_tweets[, "Sentiment"]))
 ```
+Looks like it is almost 50/50. Nice. Even though (in this case) a random sample would probably give us very similar proportions, we will use techniques to hard maintain this balance along the way. i.e. just as if we had an unbalanced dataset.
 
 ```{r}
 prop.table(table(raw_tweets[, "SentimentSource"]))
 ```
+I'm not sure what this _SentimentSource_ column is, but it looks like the vast majority is "Sentiment140". I think we'll ignore it for now.
