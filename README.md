@@ -9,6 +9,7 @@ library(readr)
 library(ggplot2)
 library(caret)
 library(knitr)
+library(quanteda)
 ```
 
 The following is an analysis of the *Twitter Sentiment Analysis Dataset* available at: <http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/>. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: <https://github.com/kwbonds/TwitterSentimentAnalysis>. The file is &gt; 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called *data* (see code below).
@@ -79,3 +80,43 @@ prop.table(table(raw_tweets[, "SentimentSource"]))
     ##  0.000845051  0.999154949
 
 I'm not sure what this *SentimentSource* column is, but it looks like the vast majority is "Sentiment140". I think we'll ignore it for now.
+
+Stratified sample
+-----------------
+
+Let's create a data partition. First we will take 4% of the data for training and validation. We'll reserve the indexes so that we can further partition later
+
+``` r
+set.seed(42)
+partition_1_indexes <- createDataPartition(raw_tweets$Sentiment, times = 1, p = 0.004, list = FALSE)
+train_validate <- raw_tweets[partition_1_indexes, c(2,4)]
+train_indexes <- createDataPartition(train_validate$Sentiment, times = 1, p = 0.60, list = FALSE)
+train <- train_validate[train_indexes, ]
+test <- train_validate[-train_indexes, ]
+nrow(train)
+```
+
+    ## [1] 3789
+
+Check proportions just to be safe.
+
+``` r
+prop.table(table(train$Sentiment))
+```
+
+    ## 
+    ##         0         1 
+    ## 0.4959092 0.5040908
+
+We can see that we have almost exactly the same proportions.
+
+Tokenization
+------------
+
+Let's now tokenize our text data. This is the first step in turning raw text into features. We want to make the individual words as features and do some cleanup. We will also engineer some features and maybe create some combinations of words a little later. The big question is: should we remove numbers, punctuation, hyphens, and symbols?
+
+``` r
+train_tokens <- tokens(train$SentimentText, what = "word", 
+                       remove_numbers = TRUE, remove_punct = TRUE, remove_twitter = FALSE,
+                       remove_symbols = TRUE, remove_hyphens = TRUE)
+```
