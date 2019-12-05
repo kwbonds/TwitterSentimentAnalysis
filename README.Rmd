@@ -141,7 +141,13 @@ train_dfm <- dfm(train_tokens, tolower = FALSE)
 train_dfm <- as.matrix(train_dfm)
 ```
 
+You can see that we now have a matrix that is the length of our original data frame but now has 7758 features in our term. 
 ```{r}
 dim(train_dfm)
+```
+Let's look at the first 6 documents (and rows) and the first 20 features of the term (as columns).
+
+```{r}
+kable(head(train_dfm[1:6, 1:20]))
 ```
 

@@ -223,8 +223,25 @@ train_dfm <- dfm(train_tokens, tolower = FALSE)
 train_dfm <- as.matrix(train_dfm)
 ```
 
+You can see that we now have a matrix that is the length of our original data frame but now has 7758 features in our term.
+
 ``` r
 dim(train_dfm)
 ```
 
     ## [1] 3789 7775
+
+Let's look at the first 6 documents (and rows) and the first 20 features of the term (as columns).
+
+``` r
+kable(head(train_dfm[1:6, 1:20]))
+```
+
+|       |  last|  night|  uva|  basebal|  come|  boy|  can|  got|  sunburnt|  today|  anoth|  day|  paradis|  swim|  ship|  pool|  music|  gonna|  danc|  wow|
+|-------|-----:|------:|----:|--------:|-----:|----:|----:|----:|---------:|------:|------:|----:|--------:|-----:|-----:|-----:|------:|------:|-----:|----:|
+| text1 |     1|      1|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
+| text2 |     0|      0|    1|        1|     1|    1|    1|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
+| text3 |     0|      0|    0|        0|     0|    0|    0|    1|         1|      1|      1|    1|        1|     1|     1|     1|      0|      0|     0|    0|
+| text4 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    1|        0|     0|     0|     0|      2|      2|     1|    3|
+| text5 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
+| text6 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      1|     0|    0|
