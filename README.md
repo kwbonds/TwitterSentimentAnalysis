@@ -99,6 +99,39 @@ raw_tweets$at_ref_count <- str_count(raw_tweets$SentimentText, "@[A-z+0-9]*")
 raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
 ```
 
+``` r
+kable(head(raw_tweets))
+```
+
+|  ItemID|  Sentiment| SentimentSource | SentimentText                                                                                                             |  web\_count|  hashtag\_count|  at\_ref\_count|  text\_length|
+|-------:|----------:|:----------------|:--------------------------------------------------------------------------------------------------------------------------|-----------:|---------------:|---------------:|-------------:|
+|       1|          0| Sentiment140    | is so sad for my APL friend.............                                                                                  |           0|               0|               0|            40|
+|       2|          0| Sentiment140    | I missed the New Moon trailer...                                                                                          |           0|               0|               0|            32|
+|       3|          1| Sentiment140    | omg its already 7:30 :O                                                                                                   |           0|               0|               0|            23|
+|       4|          0| Sentiment140    | .. Omgaga. Im sooo im gunna CRy. I've been at this dentist since 11.. I was suposed 2 just get a crown put on (30mins)... |           0|               0|               0|           122|
+|       5|          0| Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |           0|               0|               0|            44|
+|       6|          0| Sentiment140    | or i just worry too much?                                                                                                 |           0|               0|               0|            25|
+
+One thing to note: looking into the data it appears that there is a problem with the csv. There is a text\_length greater than the maximum text length twitter allows.
+
+``` r
+max(raw_tweets$text_length)
+```
+
+    ## [1] 1045
+
+Upon manual inspection we can see that several texts are getting crammed into the column of one.
+
+``` r
+kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"])
+```
+
+| SentimentText                                 |
+|:----------------------------------------------|
+| Brokeback Mountain " was also very excellent. |
+
+8837,0,Kaggle," brokeback mountain was terrible. 8838,0,Sentiment140,\# @Catherine42 I wouldn't mind but I only had 1/2 a portion & then left 1/2 the cream just fruit for me then until my hols x 8839,1,Sentiment140,\# @DeliciousLunch ... dark chocolate cookies? oh you tease! I'm writing to day n dipping into twitter for company 8840,1,Sentiment140,\# followfriday @mstuyvenberg @feb\_unsw @hazelmail @beckescreet - all almost as cool as he-man and she-ra 8841,1,Sentiment140,\# followfriday @presentsqueen because she talks sense 8842,1,Sentiment140,\# New York is the most amazing city i've ever been to 8843,0,Sentiment140,\# number times I bottomed out just in our driveway = 4... a 6.5 hour trip to mass.. I'm scared 8844,0,Sentiment140,\# of NYC celebrity street vendors &gt; \# of POA celebrities <http://streetvendor.org/media/pdfs/Side2.pdf> 8845,1,Sentiment140,\#\#\#\#\#\# yay \#\#\#\#\# thanks @matclayton \#\#\#\#\# 8846,0,Sentiment140,"\#^\#%@ I HATE THE DENTIST, i don't want to go!!! |
+
 Stratified sample
 -----------------
 

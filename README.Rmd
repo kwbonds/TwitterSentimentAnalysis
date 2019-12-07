@@ -67,6 +67,37 @@ raw_tweets$at_ref_count <- str_count(raw_tweets$SentimentText, "@[A-z+0-9]*")
 raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
 ```
 
+```{r}
+kable(head(raw_tweets))
+```
+
+One thing to note: looking into the data it appears that there is a problem with the csv. There is a text_length greater than the maximum text length twitter allows.
+
+```{r}
+max(raw_tweets$text_length)
+```
+Upon manual inspection we can see that several texts are getting crammed into the column of one.
+
+```{r}
+kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"])
+```
+
+How many do we have that are over the 280 character limit?
+
+```{r}
+count(raw_tweets[which(raw_tweets$text_length > 280),])
+```
+
+Looking at these we see a few more example like above, but also see a bunch or gargage text (i.e. special characters). We'll remove special characters later that will take care of this. We'll also remove incomplete cases after cleaning in case we are left with only empty strings after all of the cleaning. 
+
+For now let's just remove all tweets that are over the limit. We have an abundance of data so it's ok to remove some noise. And check to make sure they are gone. 
+
+```{r}
+raw_tweets <- raw_tweets[-which(raw_tweets$text_length > 280),]
+count(raw_tweets[which(raw_tweets$text_length > 280),])
+```
+
+
 ## Stratified sample
 
 Let's create a data partition. First we'll take 4% of the data for training and validation. We'll reserve the indexes so we can further partition later.
