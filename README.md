@@ -50,15 +50,16 @@ str(raw_tweets)
     ##   ..   SentimentText = col_character()
     ##   .. )
 
-|     ItemID|    Sentiment| SentimentSource    | SentimentText                                                                                                                                                                                                                                                                                                                                                                      |
-|----------:|------------:|:-------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|          1|            0| Sentiment140       | is so sad for my APL friend.............                                                                                                                                                                                                                                                                                                                                           |
-|          2|            0| Sentiment140       | I missed the New Moon trailer...                                                                                                                                                                                                                                                                                                                                                   |
-|          3|            1| Sentiment140       | omg its already 7:30 :O                                                                                                                                                                                                                                                                                                                                                            |
-|          4|            0| Sentiment140       | .. Omgaga. Im sooo im gunna CRy. I've been at this dentist since 11.. I was suposed 2 just get a crown put on (30mins)...                                                                                                                                                                                                                                                          |
-|          5|            0| Sentiment140       | i think mi bf is cheating on me!!! T\_T                                                                                                                                                                                                                                                                                                                                            |
-|          6|            0| Sentiment140       | or i just worry too much?                                                                                                                                                                                                                                                                                                                                                          |
-|  We have g|  reater that| 1.5M rows. Even th | ough tweets are somewhat short, this is a lot of data. Tokenization will undoubtedly create many more features than can be handled efficiently if we were to try to use this much data. We should probably train on about 5% of this data and use as much of the rest as we want to test. We will make sure to maintain the proportionality along the way. Let's see what that is. |
+|  ItemID|  Sentiment| SentimentSource | SentimentText                                                                                                             |
+|-------:|----------:|:----------------|:--------------------------------------------------------------------------------------------------------------------------|
+|       1|          0| Sentiment140    | is so sad for my APL friend.............                                                                                  |
+|       2|          0| Sentiment140    | I missed the New Moon trailer...                                                                                          |
+|       3|          1| Sentiment140    | omg its already 7:30 :O                                                                                                   |
+|       4|          0| Sentiment140    | .. Omgaga. Im sooo im gunna CRy. I've been at this dentist since 11.. I was suposed 2 just get a crown put on (30mins)... |
+|       5|          0| Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |
+|       6|          0| Sentiment140    | or i just worry too much?                                                                                                 |
+
+We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data. Tokenization will undoubtedly create many more features than can be handled efficiently if we were to try to use this much data. We should probably train on about 5% of this data and use as much of the rest as we want to test. We will make sure to maintain the proportionality along the way. Let's see what that is.
 
 What proportion of "Sentiment" do we have in our corpus?
 
@@ -81,6 +82,22 @@ prop.table(table(raw_tweets[, "SentimentSource"]))
     ##  0.000845051  0.999154949
 
 I'm not sure what this *SentimentSource* column is, but it looks like the vast majority is "Sentiment140". We'll ignore it for now.
+
+Counts
+------
+
+Let's add some features based on counts of how many hashtags, weblinks, and @refs are in each tweet.
+
+``` r
+# Count how many http links are in the tweet
+raw_tweets$web_count <- str_count(raw_tweets$SentimentText, "http:/*[A-z+/+.+0-9]*")
+# Count haw many hashtags are in the tweet
+raw_tweets$hashtag_count <- str_count(raw_tweets$SentimentText, "#[A-z+0-9]*")
+# Count how many @reply tags are in the tweet
+raw_tweets$at_ref_count <- str_count(raw_tweets$SentimentText, "@[A-z+0-9]*")
+# Count the number of characters in the tweet
+raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
+```
 
 Stratified sample
 -----------------
@@ -114,7 +131,9 @@ And we have almost exactly the same proportions as our original, much larger, da
 Tokenization
 ------------
 
-Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later. There are lots of decisions to be made when doing this sort of text analysis. Do we want our features to contain punctuation, hyphenated words, etc.? Let's try removing some of this to make things simpler.
+Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later.
+
+There are lots of decisions to be made when doing this sort of text analysis. Do we want our features to contain punctuation, hyphenated words, etc.? Typically in text analysis, special characters, punctuation, and numbers are removed because they don't tend to contain much information to retrieve. However, since this is Twitter data, our corpus does contain some emoticons 😂 that are represented as special characters (ex: ":-)", ":-/" ). If we remove them we will lose the textual representations of emotion. But, in looking closely at the data, these emoticons are surprisingly not very prevalent. So let's just remove them.
 
 ``` r
 train_tokens <- tokens(train$SentimentText, what = "word", 
@@ -219,6 +238,14 @@ Create a Document-feature Matrix
 ``` r
 train_dfm <- dfm(train_tokens, tolower = FALSE)
 ```
+
+Let's take a quick look at a wordcloud of what is in the dfm.
+
+``` r
+train_dfm %>% textplot_wordcloud()
+```
+
+![](README_files/figure-markdown_github/wordcloud-1.png)
 
 ``` r
 train_dfm <- as.matrix(train_dfm)

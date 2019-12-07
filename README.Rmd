@@ -21,7 +21,7 @@ The following is an analysis of the _Twitter Sentiment Analysis Dataset_ availab
 
 ## Load Data from .zip file
 
-```{r raw_tweets, warning=FALSE, message=FALSE, cache=TRUE}
+```{r raw_tweets, warning=FALSE, message=FALSE}
 raw_tweets <-  read_csv(unzip("data/Sentiment-Analysis-Dataset.zip"))
 
 ```
@@ -37,9 +37,11 @@ str(raw_tweets)
 ```{r head, echo=FALSE}
 kable(head(raw_tweets))
 ```
+
 We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data. Tokenization will undoubtedly create many more features than can be handled efficiently if we were to try to use this much data. We should probably train on about 5% of this data and use as much of the rest as we want to test. We will make sure to maintain the proportionality along the way. Let's see what that is.
 
 What proportion of "Sentiment" do we have in our corpus?
+
 ```{r}
 prop.table(table(raw_tweets[, "Sentiment"]))
 ```
@@ -49,6 +51,21 @@ Looks like almost 50/50. Nice. In this case a random sample would probably give 
 prop.table(table(raw_tweets[, "SentimentSource"]))
 ```
 I'm not sure what this _SentimentSource_ column is, but it looks like the vast majority is "Sentiment140". We'll ignore it for now.
+
+## Counts
+
+Let's add some features based on counts of how many hashtags, weblinks, and @refs are in each tweet.
+
+```{r count_features}
+# Count how many http links are in the tweet
+raw_tweets$web_count <- str_count(raw_tweets$SentimentText, "http:/*[A-z+/+.+0-9]*")
+# Count haw many hashtags are in the tweet
+raw_tweets$hashtag_count <- str_count(raw_tweets$SentimentText, "#[A-z+0-9]*")
+# Count how many @reply tags are in the tweet
+raw_tweets$at_ref_count <- str_count(raw_tweets$SentimentText, "@[A-z+0-9]*")
+# Count the number of characters in the tweet
+raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
+```
 
 ## Stratified sample
 
@@ -74,7 +91,9 @@ And we have almost exactly the same proportions as our original, much larger, da
 
 ## Tokenization
 
-Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later. There are lots of decisions to be made when doing this sort of text analysis. Do we want our features to contain punctuation, hyphenated words, etc.? Let's try removing some of this to make things simpler. 
+Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later. 
+
+There are lots of decisions to be made when doing this sort of text analysis. Do we want our features to contain punctuation, hyphenated words, etc.? Typically in text analysis, special characters, punctuation, and numbers are removed because they don't tend to contain much information to retrieve. However, since this is Twitter data, our corpus does contain some emoticons 😂 that are represented as special characters (ex: ":-)", ":-/" ). If we remove them we will lose the textual representations of emotion. But, in looking closely at the data, these emoticons are surprisingly not very prevalent. So let's just remove them. 
 
 ```{r}
 train_tokens <- tokens(train$SentimentText, what = "word", 
@@ -83,7 +102,6 @@ train_tokens <- tokens(train$SentimentText, what = "word",
 ```
 
 Let's look at a few to illustrate what we did. 
-
 ```{r}
 train_tokens[[29]]
 ```
@@ -138,6 +156,12 @@ You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
 train_dfm <- dfm(train_tokens, tolower = FALSE)
 ```
 
+Let's take a quick look at a wordcloud of what is in the dfm.
+
+```{r wordcloud, cache=TRUE}
+train_dfm %>% textplot_wordcloud()
+```
+
 ```{r}
 train_dfm <- as.matrix(train_dfm)
 ```
@@ -147,6 +171,7 @@ We now have a matrix--the length of our original data frame--now with 7758 featu
 ```{r}
 dim(train_dfm)
 ```
+
 Let's look at the first 6 documents (as rows) and the first 20 features of the term (as columns).
 
 ```{r}
