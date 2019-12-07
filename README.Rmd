@@ -17,11 +17,11 @@ library(quanteda)
 library(doSNOW)
 ```
 
-The following is an analysis of the _Twitter Sentiment Analysis Dataset_ available at: http://thinknook.com/twitter-sentiment-analysis-training-corpus-data set-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: https://github.com/kwbonds/TwitterSentimentAnalysis. The file is > 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called _data_ (see code below).
+The following is an analysis of the _Twitter Sentiment Analysis Dataset_ available at: http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: https://github.com/kwbonds/TwitterSentimentAnalysis. The file is > 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called _data_ (see code below).
 
 ## Load Data from .zip file
 
-```{r raw_tweets, warning=FALSE, message=FALSE}
+```{r raw_tweets, warning=FALSE, message=FALSE, cache=TRUE}
 raw_tweets <-  read_csv(unzip("data/Sentiment-Analysis-Dataset.zip"))
 
 ```
@@ -45,11 +45,13 @@ What proportion of "Sentiment" do we have in our corpus?
 ```{r}
 prop.table(table(raw_tweets[, "Sentiment"]))
 ```
+
 Looks like almost 50/50. Nice. In this case a random sample would probably give us very similar proportions, we will use techniques to hard maintain this proportion i.e. just as if we had an unbalanced data set.
 
 ```{r}
 prop.table(table(raw_tweets[, "SentimentSource"]))
 ```
+
 I'm not sure what this _SentimentSource_ column is, but it looks like the vast majority is "Sentiment140". We'll ignore it for now.
 
 ## Counts
@@ -71,6 +73,8 @@ raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
 kable(head(raw_tweets))
 ```
 
+## Some Manual Work
+
 One thing to note: looking into the data it appears that there is a problem with the csv. There is a text_length greater than the maximum text length twitter allows.
 
 ```{r}
@@ -79,22 +83,30 @@ max(raw_tweets$text_length)
 Upon manual inspection we can see that several texts are getting crammed into the column of one.
 
 ```{r}
-kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"])
+kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"], caption = "Example Text")
 ```
 
 How many do we have that are over the 280 character limit?
 
 ```{r}
-count(raw_tweets[which(raw_tweets$text_length > 280),])
+count(raw_tweets[which(raw_tweets$text_length > 280),])$n
 ```
 
-Looking at these we see a few more example like above, but also see a bunch or gargage text (i.e. special characters). We'll remove special characters later that will take care of this. We'll also remove incomplete cases after cleaning in case we are left with only empty strings after all of the cleaning. 
+Looking at these we see a few more examples like above, but also see a bunch or garbage text (i.e. special characters). We'll remove special characters later. This will take care of this by proxy. Also, we'll remove incomplete cases (after cleaning) in case we are left with only empty strings. 
 
 For now let's just remove all tweets that are over the limit. We have an abundance of data so it's ok to remove some noise. And check to make sure they are gone. 
 
 ```{r}
 raw_tweets <- raw_tweets[-which(raw_tweets$text_length > 280),]
-count(raw_tweets[which(raw_tweets$text_length > 280),])
+count(raw_tweets[which(raw_tweets$text_length > 280),])$n
+```
+
+Also, I did notice that many of the problem tweets above came from the "Kaggle" source. Kaggle is a Data Science competition platform. It is a great resource for competition and learning. My theory is that this data was used and enriched during a Kaggle competition. It seems disproportinate that several of the problem tweets were from this source. Let's remove them all. 
+
+```{r}
+count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
+raw_tweets <- raw_tweets[-which(raw_tweets$SentimentSource == "Kaggle"),]
+count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
 ```
 
 
@@ -112,7 +124,7 @@ test <- train_validate[-train_indexes, ]
 nrow(train)
 ```
 
-So, now we have 3789 tweets. Check proportions just to be safe.
+So, now we have `r nrow(train)` tweets. Check proportions just to be safe.
 
 ```{r}
 prop.table(table(train$Sentiment))

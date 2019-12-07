@@ -112,6 +112,9 @@ kable(head(raw_tweets))
 |       5|          0| Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |           0|               0|               0|            44|
 |       6|          0| Sentiment140    | or i just worry too much?                                                                                                 |           0|               0|               0|            25|
 
+Some Manual Work
+----------------
+
 One thing to note: looking into the data it appears that there is a problem with the csv. There is a text\_length greater than the maximum text length twitter allows.
 
 ``` r
@@ -123,7 +126,7 @@ max(raw_tweets$text_length)
 Upon manual inspection we can see that several texts are getting crammed into the column of one.
 
 ``` r
-kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"])
+kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "SentimentText"], caption = "Example Text")
 ```
 
 | SentimentText                                 |
@@ -131,6 +134,40 @@ kable(raw_tweets[which(raw_tweets$text_length == max(raw_tweets$text_length)), "
 | Brokeback Mountain " was also very excellent. |
 
 8837,0,Kaggle," brokeback mountain was terrible. 8838,0,Sentiment140,\# @Catherine42 I wouldn't mind but I only had 1/2 a portion & then left 1/2 the cream just fruit for me then until my hols x 8839,1,Sentiment140,\# @DeliciousLunch ... dark chocolate cookies? oh you tease! I'm writing to day n dipping into twitter for company 8840,1,Sentiment140,\# followfriday @mstuyvenberg @feb\_unsw @hazelmail @beckescreet - all almost as cool as he-man and she-ra 8841,1,Sentiment140,\# followfriday @presentsqueen because she talks sense 8842,1,Sentiment140,\# New York is the most amazing city i've ever been to 8843,0,Sentiment140,\# number times I bottomed out just in our driveway = 4... a 6.5 hour trip to mass.. I'm scared 8844,0,Sentiment140,\# of NYC celebrity street vendors &gt; \# of POA celebrities <http://streetvendor.org/media/pdfs/Side2.pdf> 8845,1,Sentiment140,\#\#\#\#\#\# yay \#\#\#\#\# thanks @matclayton \#\#\#\#\# 8846,0,Sentiment140,"\#^\#%@ I HATE THE DENTIST, i don't want to go!!! |
+
+How many do we have that are over the 280 character limit?
+
+``` r
+count(raw_tweets[which(raw_tweets$text_length > 280),])$n
+```
+
+    ## [1] 21
+
+Looking at these we see a few more examples like above, but also see a bunch or garbage text (i.e. special characters). We'll remove special characters later. This will take care of this by proxy. Also, we'll remove incomplete cases (after cleaning) in case we are left with only empty strings.
+
+For now let's just remove all tweets that are over the limit. We have an abundance of data so it's ok to remove some noise. And check to make sure they are gone.
+
+``` r
+raw_tweets <- raw_tweets[-which(raw_tweets$text_length > 280),]
+count(raw_tweets[which(raw_tweets$text_length > 280),])$n
+```
+
+    ## [1] 0
+
+Also, I did notice that many of the problem tweets above came from the "Kaggle" source. Kaggle is a Data Science competition platform. It is a great resource for competition and learning. My theory is that this data was used and enriched during a Kaggle competition. It seems disproportinate that several of the problem tweets were from this source. Let's remove them all.
+
+``` r
+count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
+```
+
+    ## [1] 1331
+
+``` r
+raw_tweets <- raw_tweets[-which(raw_tweets$SentimentSource == "Kaggle"),]
+count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
+```
+
+    ## [1] 0
 
 Stratified sample
 -----------------
@@ -147,9 +184,9 @@ test <- train_validate[-train_indexes, ]
 nrow(train)
 ```
 
-    ## [1] 3789
+    ## [1] 3786
 
-So, now we have 3789 tweets. Check proportions just to be safe.
+So, now we have 3786 tweets. Check proportions just to be safe.
 
 ``` r
 prop.table(table(train$Sentiment))
@@ -157,7 +194,7 @@ prop.table(table(train$Sentiment))
 
     ## 
     ##         0         1 
-    ## 0.4959092 0.5040908
+    ## 0.4912837 0.5087163
 
 And we have almost exactly the same proportions as our original, much larger, data set.
 
@@ -180,14 +217,10 @@ Let's look at a few to illustrate what we did.
 train_tokens[[29]]
 ```
 
-    ##  [1] "#millsthemusical" "@lauzzaa"         "i"               
-    ##  [4] "hope"             "you've"           "listened"        
-    ##  [7] "to"               "some"             "of"              
-    ## [10] "these"            "songs"            "they"            
-    ## [13] "are"              "so"               "funny"           
-    ## [16] "L"                "i"                "still"           
-    ## [19] "haven't"          "heard"            "about"           
-    ## [22] "ticks"            "x"
+    ##  [1] "#militarymon"    "@AmericaforGold" "lt"             
+    ##  [4] "wonder"          "who"             "founder's"      
+    ##  [7] "Navy"            "Recruiter"       "was"            
+    ## [10] "@soldiersangels" "@NavalMuseum"    "#nonprofits"
 
 These are the tokens, from the 29th record, of the training data set. i.e. the tweet below.
 
@@ -198,7 +231,7 @@ train[29,2]
     ## # A tibble: 1 x 1
     ##   SentimentText                                                            
     ##   <chr>                                                                    
-    ## 1 #millsthemusical  @lauzzaa i hope you've listened to some of these songs…
+    ## 1 #militarymon @AmericaforGold &lt;wonder who founder's Navy Recruiter was…
 
 Also this one:
 
@@ -244,10 +277,10 @@ And record 29 again:
 train_tokens[[29]]
 ```
 
-    ##  [1] "#millsthemusical" "@lauzzaa"         "hope"            
-    ##  [4] "listened"         "songs"            "funny"           
-    ##  [7] "l"                "still"            "heard"           
-    ## [10] "ticks"            "x"
+    ##  [1] "#militarymon"    "@americaforgold" "lt"             
+    ##  [4] "wonder"          "founder's"       "navy"           
+    ##  [7] "recruiter"       "@soldiersangels" "@navalmuseum"   
+    ## [10] "#nonprofits"
 
 Stemming
 --------
@@ -259,9 +292,10 @@ train_tokens <- tokens_wordstem(train_tokens, language = "english")
 train_tokens[[29]]
 ```
 
-    ##  [1] "#millsthemus" "@lauzzaa"     "hope"         "listen"      
-    ##  [5] "song"         "funni"        "l"            "still"       
-    ##  [9] "heard"        "tick"         "x"
+    ##  [1] "#militarymon"    "@americaforgold" "lt"             
+    ##  [4] "wonder"          "founder"         "navi"           
+    ##  [7] "recruit"         "@soldiersangel"  "@navalmuseum"   
+    ## [10] "#nonprofit"
 
 You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
 
@@ -290,7 +324,7 @@ We now have a matrix--the length of our original data frame--now with 7758 featu
 dim(train_dfm)
 ```
 
-    ## [1] 3789 7775
+    ## [1] 3786 7737
 
 Let's look at the first 6 documents (as rows) and the first 20 features of the term (as columns).
 
@@ -298,14 +332,14 @@ Let's look at the first 6 documents (as rows) and the first 20 features of the t
 kable(head(train_dfm[1:6, 1:20]))
 ```
 
-|       |  last|  night|  uva|  basebal|  come|  boy|  can|  got|  sunburnt|  today|  anoth|  day|  paradis|  swim|  ship|  pool|  music|  gonna|  danc|  wow|
-|-------|-----:|------:|----:|--------:|-----:|----:|----:|----:|---------:|------:|------:|----:|--------:|-----:|-----:|-----:|------:|------:|-----:|----:|
-| text1 |     1|      1|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
-| text2 |     0|      0|    1|        1|     1|    1|    1|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
-| text3 |     0|      0|    0|        0|     0|    0|    0|    1|         1|      1|      1|    1|        1|     1|     1|     1|      0|      0|     0|    0|
-| text4 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    1|        0|     0|     0|     0|      2|      2|     1|    3|
-| text5 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      0|     0|    0|
-| text6 |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|     0|     0|      0|      1|     0|    0|
+|       |  last|  night|  ughhh|  got|  new|  photoshop|  magazin|  need|  dad|  portabl|   cd|  drive|  use|  pic|    d|  think|  stuck|  tomorrow|    s|  reallyy|
+|-------|-----:|------:|------:|----:|----:|----------:|--------:|-----:|----:|--------:|----:|------:|----:|----:|----:|------:|------:|---------:|----:|--------:|
+| text1 |     1|      1|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
+| text2 |     0|      0|      1|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
+| text3 |     0|      0|      0|    1|    1|          1|        1|     1|    1|        1|    2|      1|    1|    1|    1|      1|      1|         1|    0|        0|
+| text4 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    1|        1|
+| text5 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
+| text6 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
 
 Now we have a nice DFM. The columns are the features, and the column-space is the term. The rows are the documents and the row-space are the corpus.
 
@@ -314,40 +348,28 @@ train_df <- cbind("Sentiment" = as.factor(train$Sentiment), as.data.frame(train_
 kable(train_df[1:10, 1:15])
 ```
 
-|        | Sentiment |  last|  night|  uva|  basebal|  come|  boy|  can|  got|  sunburnt|  today|  anoth|  day|  paradis|  swim|
-|--------|:----------|-----:|------:|----:|--------:|-----:|----:|----:|----:|---------:|------:|------:|----:|--------:|-----:|
-| text1  | 0         |     1|      1|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text2  | 0         |     0|      0|    1|        1|     1|    1|    1|    0|         0|      0|      0|    0|        0|     0|
-| text3  | 0         |     0|      0|    0|        0|     0|    0|    0|    1|         1|      1|      1|    1|        1|     1|
-| text4  | 1         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    1|        0|     0|
-| text5  | 0         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text6  | 0         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text7  | 0         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text8  | 0         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text9  | 1         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
-| text10 | 0         |     0|      0|    0|        0|     0|    0|    0|    0|         0|      0|      0|    0|        0|     0|
+|        | Sentiment |  last|  night|  ughhh|  got|  new|  photoshop|  magazin|  need|  dad|  portabl|   cd|  drive|  use|  pic|
+|--------|:----------|-----:|------:|------:|----:|----:|----------:|--------:|-----:|----:|--------:|----:|------:|----:|----:|
+| text1  | 0         |     1|      1|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text2  | 0         |     0|      0|      1|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text3  | 1         |     0|      0|      0|    1|    1|          1|        1|     1|    1|        1|    2|      1|    1|    1|
+| text4  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text5  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text6  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text7  | 0         |     1|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text8  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text9  | 1         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+| text10 | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
 
 ``` r
 # names(train_df) <- make.names(names(train_df))
 names(train_df[60:75])
 ```
 
-    ##  [1] "scarey"                                        
-    ##  [2] "startl"                                        
-    ##  [3] "wit"                                           
-    ##  [4] "experi"                                        
-    ##  [5] "#followfriday"                                 
-    ##  [6] "@maria"                                        
-    ##  [7] "aguilar@alegria21@lettya@formulacyan@peachonic"
-    ##  [8] "#fringeto"                                     
-    ##  [9] "internetless"                                  
-    ## [10] "state"                                         
-    ## [11] "internet"                                      
-    ## [12] "black"                                         
-    ## [13] "inspir"                                        
-    ## [14] "http"                                          
-    ## [15] "bit.li"                                        
-    ## [16] "6fiep"
+    ##  [1] "rob"           "glad"          "fine"          "sure"         
+    ##  [5] "scarey"        "startl"        "wit"           "experi"       
+    ##  [9] "#followfriday" "@mattlogelin"  "life"          "death"        
+    ## [13] "hour"          "period"        "cool"          "guy"
 
 Unfortunately, R cannot handle some of these tokens as columns in a data frame. The names cannot begin with an integer or a special character for example. We need to fix these. Here is how.
 
@@ -356,22 +378,10 @@ names(train_df) <- make.names(names(train_df), unique = TRUE)
 names(train_df[60:75])
 ```
 
-    ##  [1] "scarey"                                        
-    ##  [2] "startl"                                        
-    ##  [3] "wit"                                           
-    ##  [4] "experi"                                        
-    ##  [5] "X.followfriday"                                
-    ##  [6] "X.maria"                                       
-    ##  [7] "aguilar.alegria21.lettya.formulacyan.peachonic"
-    ##  [8] "X.fringeto"                                    
-    ##  [9] "internetless"                                  
-    ## [10] "state"                                         
-    ## [11] "internet"                                      
-    ## [12] "black"                                         
-    ## [13] "inspir"                                        
-    ## [14] "http"                                          
-    ## [15] "bit.li"                                        
-    ## [16] "X6fiep"
+    ##  [1] "rob"            "glad"           "fine"           "sure"          
+    ##  [5] "scarey"         "startl"         "wit"            "experi"        
+    ##  [9] "X.followfriday" "X.mattlogelin"  "life"           "death"         
+    ## [13] "hour"           "period"         "cool"           "guy"
 
 Setting up for K-fold Cross Validation
 --------------------------------------
