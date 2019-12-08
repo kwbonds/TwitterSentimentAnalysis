@@ -199,7 +199,9 @@ plot3 <- ggplot(raw_tweets,aes(x = hashtag_count , fill = Sentiment)) +
 grid.arrange(plot1, plot2, plot3, nrow=1, ncol=3)
 ```
 
-![](README_files/figure-markdown_github/grid_plot-1.png) Doesn't look like any of the features we engineered suggest much predictive value. Appears we will have to rely on Tokenizing the text for our features unless we can come up with other ideas. We can start with simple tokens (i.e. "Bag of Words") and also try some N-grams. Simple Bag of Words tokenization does not preserve the word order or association, But N-grams will cause our feature space to explode and is typically very sparse. This will require some dimensionality reduction which will certainly add complexity and is a "black-box"" method--meaning we lose the ability to inspect or explain the model. Let's start creating our test/train set and start modeling.
+![](README_files/figure-markdown_github/grid_plot-1.png)
+
+Doesn't look like any of the features we engineered suggest much predictive value. Appears we will have to rely on Tokenizing the text for our features unless we can come up with other ideas. We can start with simple tokens (i.e. "Bag of Words") and also try some N-grams. Simple Bag of Words tokenization does not preserve the word order or association, But N-grams will cause our feature space to explode and is typically very sparse. This will require some dimensionality reduction which will certainly add complexity and is a "black-box"" method--meaning we lose the ability to inspect or explain the model. Let's start creating our test/train set and start modeling.
 
 Stratified sample
 -----------------
