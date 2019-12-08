@@ -1,7 +1,7 @@
 ---
 title: "Sentiment Analysis of Tweets"
 author: "Kevin Bonds"
-date: "12/4/2019"
+date: "Date modified: `r format(Sys.time(), '%d %B, %Y')`"
 output: 
         github_document: default
         html_document: default
@@ -150,6 +150,7 @@ Let's create a data partition. First we'll take 4% of the data for training and 
 set.seed(42)
 partition_1_indexes <- createDataPartition(raw_tweets$Sentiment, times = 1, p = 0.004, list = FALSE)
 train_validate <- raw_tweets[partition_1_indexes, c(2,4)]
+set.seed(42)
 train_indexes <- createDataPartition(train_validate$Sentiment, times = 1, p = 0.60, list = FALSE)
 train <- train_validate[train_indexes, ]
 test <- train_validate[-train_indexes, ]
@@ -186,6 +187,7 @@ These are the tokens, from the 29th record, of the training data set. i.e. the t
 ```{r}
 train[29,2]
 ```
+
 Also this one:
 
 ```{r}

@@ -1,7 +1,7 @@
 Sentiment Analysis of Tweets
 ================
 Kevin Bonds
-12/4/2019
+Date modified: 07 December, 2019
 
 ``` r
 library(tidyverse)
@@ -210,6 +210,7 @@ Let's create a data partition. First we'll take 4% of the data for training and 
 set.seed(42)
 partition_1_indexes <- createDataPartition(raw_tweets$Sentiment, times = 1, p = 0.004, list = FALSE)
 train_validate <- raw_tweets[partition_1_indexes, c(2,4)]
+set.seed(42)
 train_indexes <- createDataPartition(train_validate$Sentiment, times = 1, p = 0.60, list = FALSE)
 train <- train_validate[train_indexes, ]
 test <- train_validate[-train_indexes, ]
@@ -249,7 +250,12 @@ Let's look at a few to illustrate what we did.
 train_tokens[[29]]
 ```
 
-    ## [1] "quot"    "I"       "shall"   "twitter" "this"    "moment"  "quot"
+    ##  [1] "#asterisk"     "meetme"        "does"          "not"          
+    ##  [5] "like"          "me"            "it"            "just"         
+    ##  [9] "does"          "not"           "do"            "what"         
+    ## [13] "I"             "want"          "and"           "no"           
+    ## [17] "documentation" "on"            "how"           "to"           
+    ## [21] "implement"     "it"            "either"
 
 These are the tokens, from the 29th record, of the training data set. i.e. the tweet below.
 
@@ -258,9 +264,9 @@ train[29,2]
 ```
 
     ## # A tibble: 1 x 1
-    ##   SentimentText                           
-    ##   <chr>                                   
-    ## 1 &quot;I shall twitter this moment!&quot;
+    ##   SentimentText                                                            
+    ##   <chr>                                                                    
+    ## 1 #asterisk meetme does not like me... it just does not do what I want, an…
 
 Also this one:
 
@@ -268,9 +274,9 @@ Also this one:
 train_tokens[[26]]
 ```
 
-    ##  [1] "gt"      "How"     "Do"      "You"     "Love"    "Someone" "Why"    
-    ##  [8] "I've"    "got"     "to"      "wait"    "til"     "monday"  "It's"   
-    ## [15] "unfair"
+    ##  [1] "#3hotwords" "quot"       "GOD"        "loves"      "U"         
+    ##  [6] "quot"       "All"        "Day"        "Everyday"   "Believe"   
+    ## [11] "that"
 
 We see some upper case is present. Let's change all to lower to reduce the possible combinations.
 
@@ -279,9 +285,9 @@ train_tokens <- tokens_tolower(train_tokens)
 train_tokens[[26]]
 ```
 
-    ##  [1] "gt"      "how"     "do"      "you"     "love"    "someone" "why"    
-    ##  [8] "i've"    "got"     "to"      "wait"    "til"     "monday"  "it's"   
-    ## [15] "unfair"
+    ##  [1] "#3hotwords" "quot"       "god"        "loves"      "u"         
+    ##  [6] "quot"       "all"        "day"        "everyday"   "believe"   
+    ## [11] "that"
 
 Remove Stopwords
 ----------------
@@ -294,8 +300,8 @@ train_tokens <- tokens_select(train_tokens, stopwords(),
 train_tokens[[26]]
 ```
 
-    ## [1] "gt"      "love"    "someone" "got"     "wait"    "til"     "monday" 
-    ## [8] "unfair"
+    ## [1] "#3hotwords" "quot"       "god"        "loves"      "u"         
+    ## [6] "quot"       "day"        "everyday"   "believe"
 
 And record 29 again:
 
@@ -303,7 +309,8 @@ And record 29 again:
 train_tokens[[29]]
 ```
 
-    ## [1] "quot"    "shall"   "twitter" "moment"  "quot"
+    ## [1] "#asterisk"     "meetme"        "like"          "just"         
+    ## [5] "want"          "documentation" "implement"     "either"
 
 Stemming
 --------
@@ -315,7 +322,8 @@ train_tokens <- tokens_wordstem(train_tokens, language = "english")
 train_tokens[[29]]
 ```
 
-    ## [1] "quot"    "shall"   "twitter" "moment"  "quot"
+    ## [1] "#asterisk" "meetm"     "like"      "just"      "want"      "document" 
+    ## [7] "implement" "either"
 
 You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
 
@@ -338,13 +346,13 @@ train_dfm %>% textplot_wordcloud()
 train_dfm <- as.matrix(train_dfm)
 ```
 
-We now have a matrix--the length of our original data frame--now with 7899 features in the term. That is a lot of features. We are definitely suffering from the "curse of dimensionality". We'll need to do some feature reduction at some point.
+We now have a matrix--the length of our original data frame--now with 7855 features in the term. That is a lot of features. We are definitely suffering from the "curse of dimensionality". We'll need to do some feature reduction at some point.
 
 ``` r
 dim(train_dfm)
 ```
 
-    ## [1] 3787 7899
+    ## [1] 3787 7855
 
 Let's look at the first 6 documents (as rows) and the first 20 features of the term (as columns).
 
@@ -352,14 +360,14 @@ Let's look at the first 6 documents (as rows) and the first 20 features of the t
 kable(head(train_dfm[1:6, 1:20]))
 ```
 
-|       |  glad|  divers|  got|  stavro|  @johnmaeda|  exe|   er|  ppt|  talk|  txt|  leafi|  pot|  plant|  http|  tr.im|  obof|  bore|  one|  anymor|  just|
-|-------|-----:|-------:|----:|-------:|-----------:|----:|----:|----:|-----:|----:|------:|----:|------:|-----:|------:|-----:|-----:|----:|-------:|-----:|
-| text1 |     1|       1|    1|       1|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
-| text2 |     0|       0|    0|       0|           1|    1|    2|    1|     1|    1|      1|    1|      1|     1|      1|     1|     0|    0|       0|     0|
-| text3 |     0|       0|    0|       0|           0|    0|    0|    0|     1|    0|      0|    0|      0|     0|      0|     0|     1|    1|       1|     0|
-| text4 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     1|
-| text5 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
-| text6 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
+|       |  \#canuck|  glad|  divers|  got|  stavro|  nighter|  yeeeeeeeeeeeessshhhh|  nightmar|  come|  week|  wait|  graduat|  bore|  one|  talk|  anymor|  just|  wanna|  swim|  lap|
+|-------|---------:|-----:|-------:|----:|-------:|--------:|---------------------:|---------:|-----:|-----:|-----:|--------:|-----:|----:|-----:|-------:|-----:|------:|-----:|----:|
+| text1 |         1|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|     0|       0|     0|      0|     0|    0|
+| text2 |         0|     1|       1|    1|       1|        0|                     0|         0|     0|     0|     0|        0|     0|    0|     0|       0|     0|      0|     0|    0|
+| text3 |         0|     0|       0|    0|       0|        1|                     1|         1|     1|     1|     1|        1|     0|    0|     0|       0|     0|      0|     0|    0|
+| text4 |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     1|    1|     1|       1|     0|      0|     0|    0|
+| text5 |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|     0|       0|     1|      1|     1|    1|
+| text6 |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|     0|       0|     0|      0|     0|    0|
 
 Now we have a nice DFM. The columns are the features, and the column-space is the term. The rows are the documents and the row-space are the corpus.
 
@@ -368,27 +376,28 @@ train_df <- cbind("Sentiment" = as.factor(train$Sentiment), as.data.frame(train_
 kable(train_df[1:10, 1:15])
 ```
 
-|        | Sentiment |  glad|  divers|  got|  stavro|  @johnmaeda|  exe|   er|  ppt|  talk|  txt|  leafi|  pot|  plant|  http|
-|--------|:----------|-----:|-------:|----:|-------:|-----------:|----:|----:|----:|-----:|----:|------:|----:|------:|-----:|
-| text1  | Negative  |     1|       1|    1|       1|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text2  | Positive  |     0|       0|    0|       0|           1|    1|    2|    1|     1|    1|      1|    1|      1|     1|
-| text3  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     1|    0|      0|    0|      0|     0|
-| text4  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text5  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text6  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text7  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text8  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text9  | Positive  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
-| text10 | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+|        | Sentiment |  \#canuck|  glad|  divers|  got|  stavro|  nighter|  yeeeeeeeeeeeessshhhh|  nightmar|  come|  week|  wait|  graduat|  bore|  one|
+|--------|:----------|---------:|-----:|-------:|----:|-------:|--------:|---------------------:|---------:|-----:|-----:|-----:|--------:|-----:|----:|
+| text1  | Negative  |         1|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text2  | Negative  |         0|     1|       1|    1|       1|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text3  | Negative  |         0|     0|       0|    0|       0|        1|                     1|         1|     1|     1|     1|        1|     0|    0|
+| text4  | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     1|    1|
+| text5  | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text6  | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text7  | Positive  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text8  | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text9  | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
+| text10 | Negative  |         0|     0|       0|    0|       0|        0|                     0|         0|     0|     0|     0|        0|     0|    0|
 
 ``` r
 # names(train_df) <- make.names(names(train_df))
 names(train_df[60:75])
 ```
 
-    ##  [1] "jail"    "ing"     "make"    "rocker"  "shasta"  "magic"   "baaad"  
-    ##  [8] "#divers" "win"     "boyl"    "woman"   "today"   "turn"    "horribl"
-    ## [15] "seen"    "come"
+    ##  [1] "omggggg"       "later"         "practic"       "tire"         
+    ##  [5] "turn"          "horribl"       "seen"          "readi"        
+    ##  [9] "complet"       "wash"          "hand"          "new"          
+    ## [13] "orlean"        "#followfriday" "@rorubi"       "although"
 
 Unfortunately, R cannot handle some of these tokens as columns in a data frame. The names cannot begin with an integer or a special character for example. We need to fix these. Here is how.
 
@@ -397,9 +406,10 @@ names(train_df) <- make.names(names(train_df), unique = TRUE)
 names(train_df[60:75])
 ```
 
-    ##  [1] "jail"     "ing"      "make"     "rocker"   "shasta"   "magic"   
-    ##  [7] "baaad"    "X.divers" "win"      "boyl"     "woman"    "today"   
-    ## [13] "turn"     "horribl"  "seen"     "come"
+    ##  [1] "omggggg"        "later"          "practic"        "tire"          
+    ##  [5] "turn"           "horribl"        "seen"           "readi"         
+    ##  [9] "complet"        "wash"           "hand"           "new"           
+    ## [13] "orlean"         "X.followfriday" "X.rorubi"       "although"
 
 Setting up for K-fold Cross Validation
 --------------------------------------
