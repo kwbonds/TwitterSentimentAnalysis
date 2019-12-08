@@ -11,9 +11,10 @@ library(caret)
 library(knitr)
 library(quanteda)
 library(doSNOW)
+library(gridExtra)
 ```
 
-The following is an analysis of the *Twitter Sentiment Analysis Dataset* available at: <http://thinknook.com/twitter-sentiment-analysis-training-corpus-data> set-2012-09-22/. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: <https://github.com/kwbonds/TwitterSentimentAnalysis>. The file is &gt; 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called *data* (see code below).
+The following is an analysis of the *Twitter Sentiment Analysis Dataset* available at: <http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/>. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: <https://github.com/kwbonds/TwitterSentimentAnalysis>. The file is &gt; 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called *data* (see code below).
 
 Load Data from .zip file
 ------------------------
@@ -59,6 +60,12 @@ str(raw_tweets)
 |       5|          0| Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |
 |       6|          0| Sentiment140    | or i just worry too much?                                                                                                 |
 
+``` r
+raw_tweets$Sentiment <- as.factor(raw_tweets$Sentiment)
+levels(raw_tweets$Sentiment) <- c("Negative", "Positive")
+raw_tweets$SentimentSource <- as.factor(raw_tweets$SentimentSource)
+```
+
 We have greater that 1.5M rows. Even though tweets are somewhat short, this is a lot of data. Tokenization will undoubtedly create many more features than can be handled efficiently if we were to try to use this much data. We should probably train on about 5% of this data and use as much of the rest as we want to test. We will make sure to maintain the proportionality along the way. Let's see what that is.
 
 What proportion of "Sentiment" do we have in our corpus?
@@ -68,7 +75,7 @@ prop.table(table(raw_tweets[, "Sentiment"]))
 ```
 
     ## 
-    ##         0         1 
+    ##  Negative  Positive 
     ## 0.4994473 0.5005527
 
 Looks like almost 50/50. Nice. In this case a random sample would probably give us very similar proportions, we will use techniques to hard maintain this proportion i.e. just as if we had an unbalanced data set.
@@ -103,14 +110,14 @@ raw_tweets$text_length <- nchar(raw_tweets$SentimentText)
 kable(head(raw_tweets))
 ```
 
-|  ItemID|  Sentiment| SentimentSource | SentimentText                                                                                                             |  web\_count|  hashtag\_count|  at\_ref\_count|  text\_length|
-|-------:|----------:|:----------------|:--------------------------------------------------------------------------------------------------------------------------|-----------:|---------------:|---------------:|-------------:|
-|       1|          0| Sentiment140    | is so sad for my APL friend.............                                                                                  |           0|               0|               0|            40|
-|       2|          0| Sentiment140    | I missed the New Moon trailer...                                                                                          |           0|               0|               0|            32|
-|       3|          1| Sentiment140    | omg its already 7:30 :O                                                                                                   |           0|               0|               0|            23|
-|       4|          0| Sentiment140    | .. Omgaga. Im sooo im gunna CRy. I've been at this dentist since 11.. I was suposed 2 just get a crown put on (30mins)... |           0|               0|               0|           122|
-|       5|          0| Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |           0|               0|               0|            44|
-|       6|          0| Sentiment140    | or i just worry too much?                                                                                                 |           0|               0|               0|            25|
+|  ItemID| Sentiment | SentimentSource | SentimentText                                                                                                             |  web\_count|  hashtag\_count|  at\_ref\_count|  text\_length|
+|-------:|:----------|:----------------|:--------------------------------------------------------------------------------------------------------------------------|-----------:|---------------:|---------------:|-------------:|
+|       1| Negative  | Sentiment140    | is so sad for my APL friend.............                                                                                  |           0|               0|               0|            40|
+|       2| Negative  | Sentiment140    | I missed the New Moon trailer...                                                                                          |           0|               0|               0|            32|
+|       3| Positive  | Sentiment140    | omg its already 7:30 :O                                                                                                   |           0|               0|               0|            23|
+|       4| Negative  | Sentiment140    | .. Omgaga. Im sooo im gunna CRy. I've been at this dentist since 11.. I was suposed 2 just get a crown put on (30mins)... |           0|               0|               0|           122|
+|       5| Negative  | Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |           0|               0|               0|            44|
+|       6| Negative  | Sentiment140    | or i just worry too much?                                                                                                 |           0|               0|               0|            25|
 
 Some Manual Work
 ----------------
@@ -154,7 +161,7 @@ count(raw_tweets[which(raw_tweets$text_length > 280),])$n
 
     ## [1] 0
 
-Also, I did notice that many of the problem tweets above came from the "Kaggle" source. Kaggle is a Data Science competition platform. It is a great resource for competition and learning. My theory is that this data was used and enriched during a Kaggle competition. It seems disproportinate that several of the problem tweets were from this source. Let's remove them all.
+Also, I did notice that many of the problem tweets above came from the "Kaggle" source. Kaggle is a Data Science competition platform. It is a great resource for competition and learning. My theory is that this data was used and enriched during a Kaggle competition. It seems disproportionate that several of the problem tweets were from this source. Let's remove them all.
 
 ``` r
 count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
@@ -168,6 +175,31 @@ count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
 ```
 
     ## [1] 0
+
+Visualize Distributions of Engineered Features
+----------------------------------------------
+
+``` r
+plot1 <- ggplot(raw_tweets,aes(x = text_length, fill = Sentiment)) +
+        geom_histogram(binwidth = 5, position = "identity", alpha = 0.5) +
+        xlim(-1,140) +
+        labs(y = "Text Count", x = "Length of Text",
+             title = "Distribution of Text Lengths")
+plot2 <- ggplot(raw_tweets,aes(x = at_ref_count , fill = Sentiment)) +
+        geom_histogram(binwidth = 1, position = "stack") +
+        xlim(-1,3) +
+        labs(y = "Text Count", x = "Count of @ref",
+             title = "Distribution of @ref")
+plot3 <- ggplot(raw_tweets,aes(x = hashtag_count , fill = Sentiment)) +
+        geom_histogram(binwidth = 1, position = "stack") +
+        xlim(-1,3) +
+        labs(y = "Text Count", x = "Count of hashtags",
+             title = "Distribution of Hashtags")
+
+grid.arrange(plot1, plot2, plot3, nrow=1, ncol=3)
+```
+
+![](README_files/figure-markdown_github/grid_plot-1.png) Doesn't look like any of the features we engineered suggest much predictive value. Appears we will have to rely on Tokenizing the text for our features unless we can come up with other ideas. We can start with simple tokens (i.e. "Bag of Words") and also try some N-grams. Simple Bag of Words tokenization does not preserve the word order or association, But N-grams will cause our feature space to explode and is typically very sparse. This will require some dimensionality reduction which will certainly add complexity and is a "black-box"" method--meaning we lose the ability to inspect or explain the model. Let's start creating our test/train set and start modeling.
 
 Stratified sample
 -----------------
@@ -184,17 +216,17 @@ test <- train_validate[-train_indexes, ]
 nrow(train)
 ```
 
-    ## [1] 3786
+    ## [1] 3787
 
-So, now we have 3786 tweets. Check proportions just to be safe.
+So, now we have 3787 tweets. Check proportions just to be safe.
 
 ``` r
 prop.table(table(train$Sentiment))
 ```
 
     ## 
-    ##         0         1 
-    ## 0.4912837 0.5087163
+    ##  Negative  Positive 
+    ## 0.4996039 0.5003961
 
 And we have almost exactly the same proportions as our original, much larger, data set.
 
@@ -217,10 +249,7 @@ Let's look at a few to illustrate what we did.
 train_tokens[[29]]
 ```
 
-    ##  [1] "#militarymon"    "@AmericaforGold" "lt"             
-    ##  [4] "wonder"          "who"             "founder's"      
-    ##  [7] "Navy"            "Recruiter"       "was"            
-    ## [10] "@soldiersangels" "@NavalMuseum"    "#nonprofits"
+    ## [1] "quot"    "I"       "shall"   "twitter" "this"    "moment"  "quot"
 
 These are the tokens, from the 29th record, of the training data set. i.e. the tweet below.
 
@@ -229,9 +258,9 @@ train[29,2]
 ```
 
     ## # A tibble: 1 x 1
-    ##   SentimentText                                                            
-    ##   <chr>                                                                    
-    ## 1 #militarymon @AmericaforGold &lt;wonder who founder's Navy Recruiter was…
+    ##   SentimentText                           
+    ##   <chr>                                   
+    ## 1 &quot;I shall twitter this moment!&quot;
 
 Also this one:
 
@@ -239,10 +268,9 @@ Also this one:
 train_tokens[[26]]
 ```
 
-    ##  [1] "quot"         "Salvation"    "has"          "come"        
-    ##  [5] "to"           "us"           "He's"         "chosen"      
-    ##  [9] "us"           "in"           "love"         "quot"        
-    ## [13] "Love"         "it"           "@phatfish"    "@nfellingham"
+    ##  [1] "gt"      "How"     "Do"      "You"     "Love"    "Someone" "Why"    
+    ##  [8] "I've"    "got"     "to"      "wait"    "til"     "monday"  "It's"   
+    ## [15] "unfair"
 
 We see some upper case is present. Let's change all to lower to reduce the possible combinations.
 
@@ -251,10 +279,9 @@ train_tokens <- tokens_tolower(train_tokens)
 train_tokens[[26]]
 ```
 
-    ##  [1] "quot"         "salvation"    "has"          "come"        
-    ##  [5] "to"           "us"           "he's"         "chosen"      
-    ##  [9] "us"           "in"           "love"         "quot"        
-    ## [13] "love"         "it"           "@phatfish"    "@nfellingham"
+    ##  [1] "gt"      "how"     "do"      "you"     "love"    "someone" "why"    
+    ##  [8] "i've"    "got"     "to"      "wait"    "til"     "monday"  "it's"   
+    ## [15] "unfair"
 
 Remove Stopwords
 ----------------
@@ -267,9 +294,8 @@ train_tokens <- tokens_select(train_tokens, stopwords(),
 train_tokens[[26]]
 ```
 
-    ##  [1] "quot"         "salvation"    "come"         "us"          
-    ##  [5] "chosen"       "us"           "love"         "quot"        
-    ##  [9] "love"         "@phatfish"    "@nfellingham"
+    ## [1] "gt"      "love"    "someone" "got"     "wait"    "til"     "monday" 
+    ## [8] "unfair"
 
 And record 29 again:
 
@@ -277,10 +303,7 @@ And record 29 again:
 train_tokens[[29]]
 ```
 
-    ##  [1] "#militarymon"    "@americaforgold" "lt"             
-    ##  [4] "wonder"          "founder's"       "navy"           
-    ##  [7] "recruiter"       "@soldiersangels" "@navalmuseum"   
-    ## [10] "#nonprofits"
+    ## [1] "quot"    "shall"   "twitter" "moment"  "quot"
 
 Stemming
 --------
@@ -292,10 +315,7 @@ train_tokens <- tokens_wordstem(train_tokens, language = "english")
 train_tokens[[29]]
 ```
 
-    ##  [1] "#militarymon"    "@americaforgold" "lt"             
-    ##  [4] "wonder"          "founder"         "navi"           
-    ##  [7] "recruit"         "@soldiersangel"  "@navalmuseum"   
-    ## [10] "#nonprofit"
+    ## [1] "quot"    "shall"   "twitter" "moment"  "quot"
 
 You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
 
@@ -318,13 +338,13 @@ train_dfm %>% textplot_wordcloud()
 train_dfm <- as.matrix(train_dfm)
 ```
 
-We now have a matrix--the length of our original data frame--now with 7758 features in the term. That is a lot of features. We are definitely suffering from the "curse of demensionality". We'll need to do some feature reduction at some point.
+We now have a matrix--the length of our original data frame--now with 7899 features in the term. That is a lot of features. We are definitely suffering from the "curse of dimensionality". We'll need to do some feature reduction at some point.
 
 ``` r
 dim(train_dfm)
 ```
 
-    ## [1] 3786 7737
+    ## [1] 3787 7899
 
 Let's look at the first 6 documents (as rows) and the first 20 features of the term (as columns).
 
@@ -332,14 +352,14 @@ Let's look at the first 6 documents (as rows) and the first 20 features of the t
 kable(head(train_dfm[1:6, 1:20]))
 ```
 
-|       |  last|  night|  ughhh|  got|  new|  photoshop|  magazin|  need|  dad|  portabl|   cd|  drive|  use|  pic|    d|  think|  stuck|  tomorrow|    s|  reallyy|
-|-------|-----:|------:|------:|----:|----:|----------:|--------:|-----:|----:|--------:|----:|------:|----:|----:|----:|------:|------:|---------:|----:|--------:|
-| text1 |     1|      1|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
-| text2 |     0|      0|      1|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
-| text3 |     0|      0|      0|    1|    1|          1|        1|     1|    1|        1|    2|      1|    1|    1|    1|      1|      1|         1|    0|        0|
-| text4 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    1|        1|
-| text5 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
-| text6 |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|    0|      0|      0|         0|    0|        0|
+|       |  glad|  divers|  got|  stavro|  @johnmaeda|  exe|   er|  ppt|  talk|  txt|  leafi|  pot|  plant|  http|  tr.im|  obof|  bore|  one|  anymor|  just|
+|-------|-----:|-------:|----:|-------:|-----------:|----:|----:|----:|-----:|----:|------:|----:|------:|-----:|------:|-----:|-----:|----:|-------:|-----:|
+| text1 |     1|       1|    1|       1|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
+| text2 |     0|       0|    0|       0|           1|    1|    2|    1|     1|    1|      1|    1|      1|     1|      1|     1|     0|    0|       0|     0|
+| text3 |     0|       0|    0|       0|           0|    0|    0|    0|     1|    0|      0|    0|      0|     0|      0|     0|     1|    1|       1|     0|
+| text4 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     1|
+| text5 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
+| text6 |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|      0|     0|     0|    0|       0|     0|
 
 Now we have a nice DFM. The columns are the features, and the column-space is the term. The rows are the documents and the row-space are the corpus.
 
@@ -348,28 +368,27 @@ train_df <- cbind("Sentiment" = as.factor(train$Sentiment), as.data.frame(train_
 kable(train_df[1:10, 1:15])
 ```
 
-|        | Sentiment |  last|  night|  ughhh|  got|  new|  photoshop|  magazin|  need|  dad|  portabl|   cd|  drive|  use|  pic|
-|--------|:----------|-----:|------:|------:|----:|----:|----------:|--------:|-----:|----:|--------:|----:|------:|----:|----:|
-| text1  | 0         |     1|      1|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text2  | 0         |     0|      0|      1|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text3  | 1         |     0|      0|      0|    1|    1|          1|        1|     1|    1|        1|    2|      1|    1|    1|
-| text4  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text5  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text6  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text7  | 0         |     1|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text8  | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text9  | 1         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
-| text10 | 0         |     0|      0|      0|    0|    0|          0|        0|     0|    0|        0|    0|      0|    0|    0|
+|        | Sentiment |  glad|  divers|  got|  stavro|  @johnmaeda|  exe|   er|  ppt|  talk|  txt|  leafi|  pot|  plant|  http|
+|--------|:----------|-----:|-------:|----:|-------:|-----------:|----:|----:|----:|-----:|----:|------:|----:|------:|-----:|
+| text1  | Negative  |     1|       1|    1|       1|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text2  | Positive  |     0|       0|    0|       0|           1|    1|    2|    1|     1|    1|      1|    1|      1|     1|
+| text3  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     1|    0|      0|    0|      0|     0|
+| text4  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text5  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text6  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text7  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text8  | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text9  | Positive  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
+| text10 | Negative  |     0|       0|    0|       0|           0|    0|    0|    0|     0|    0|      0|    0|      0|     0|
 
 ``` r
 # names(train_df) <- make.names(names(train_df))
 names(train_df[60:75])
 ```
 
-    ##  [1] "rob"           "glad"          "fine"          "sure"         
-    ##  [5] "scarey"        "startl"        "wit"           "experi"       
-    ##  [9] "#followfriday" "@mattlogelin"  "life"          "death"        
-    ## [13] "hour"          "period"        "cool"          "guy"
+    ##  [1] "jail"    "ing"     "make"    "rocker"  "shasta"  "magic"   "baaad"  
+    ##  [8] "#divers" "win"     "boyl"    "woman"   "today"   "turn"    "horribl"
+    ## [15] "seen"    "come"
 
 Unfortunately, R cannot handle some of these tokens as columns in a data frame. The names cannot begin with an integer or a special character for example. We need to fix these. Here is how.
 
@@ -378,10 +397,9 @@ names(train_df) <- make.names(names(train_df), unique = TRUE)
 names(train_df[60:75])
 ```
 
-    ##  [1] "rob"            "glad"           "fine"           "sure"          
-    ##  [5] "scarey"         "startl"         "wit"            "experi"        
-    ##  [9] "X.followfriday" "X.mattlogelin"  "life"           "death"         
-    ## [13] "hour"           "period"         "cool"           "guy"
+    ##  [1] "jail"     "ing"      "make"     "rocker"   "shasta"   "magic"   
+    ##  [7] "baaad"    "X.divers" "win"      "boyl"     "woman"    "today"   
+    ## [13] "turn"     "horribl"  "seen"     "come"
 
 Setting up for K-fold Cross Validation
 --------------------------------------
