@@ -3,6 +3,12 @@ Sentiment Analysis of Tweets
 Kevin Bonds
 Date modified: 07 December, 2019
 
+### Introduction
+
+The following is an analysis of the *Twitter Sentiment Analysis Dataset* available at: <http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/>. I will attempt to use this data to train a model to label unseen tweets into **"Positive** or **"Negative"** sentiment. I will walk through my methodology and include code. The github repo for my work can be found here: <https://github.com/kwbonds/TwitterSentimentAnalysis>. The file is &gt; 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called *data* in your working directory (see code below).
+
+### Libraries Used
+
 ``` r
 library(tidyverse)
 library(readr)
@@ -14,17 +20,13 @@ library(doSNOW)
 library(gridExtra)
 ```
 
-The following is an analysis of the *Twitter Sentiment Analysis Dataset* available at: <http://thinknook.com/twitter-sentiment-analysis-training-corpus-dataset-2012-09-22/>. I will attempt to use this data to train a model to predict the sentiment in future tweets. I will walk through my methodology below and include code. The github repo for my work can be found here: <https://github.com/kwbonds/TwitterSentimentAnalysis>. The file is &gt; 50 MB, so I have not included it in the repo. You will need to download it from the source above and place it in a file called *data* (see code below).
-
-Load Data from .zip file
-------------------------
+### Load Data from .zip file
 
 ``` r
 raw_tweets <-  read_csv(unzip("data/Sentiment-Analysis-Dataset.zip"))
 ```
 
-The Data
---------
+### The Data
 
 Take a quick look at what we have.
 
@@ -90,8 +92,7 @@ prop.table(table(raw_tweets[, "SentimentSource"]))
 
 I'm not sure what this *SentimentSource* column is, but it looks like the vast majority is "Sentiment140". We'll ignore it for now.
 
-Counts
-------
+### Count Features
 
 Let's add some features based on counts of how many hashtags, weblinks, and @refs are in each tweet.
 
@@ -119,8 +120,7 @@ kable(head(raw_tweets))
 |       5| Negative  | Sentiment140    | i think mi bf is cheating on me!!! T\_T                                                                                   |           0|               0|               0|            44|
 |       6| Negative  | Sentiment140    | or i just worry too much?                                                                                                 |           0|               0|               0|            25|
 
-Some Manual Work
-----------------
+### Some Manual Work
 
 One thing to note: looking into the data it appears that there is a problem with the csv. There is a text\_length greater than the maximum text length twitter allows.
 
@@ -176,8 +176,7 @@ count(raw_tweets[which(raw_tweets$SentimentSource == "Kaggle"),])$n
 
     ## [1] 0
 
-Visualize Distributions of Engineered Features
-----------------------------------------------
+### Visualize Distributions of Engineered Features
 
 ``` r
 plot1 <- ggplot(raw_tweets,aes(x = text_length, fill = Sentiment)) +
@@ -203,8 +202,7 @@ grid.arrange(plot1, plot2, plot3, nrow=1, ncol=3)
 
 Doesn't look like any of the features we engineered suggest much predictive value. Appears we will have to rely on Tokenizing the text for our features unless we can come up with other ideas. We can start with simple tokens (i.e. "Bag of Words") and also try some N-grams. Simple Bag of Words tokenization does not preserve the word order or association, But N-grams will cause our feature space to explode and is typically very sparse. This will require some dimensionality reduction which will certainly add complexity and is a "black-box"" method--meaning we lose the ability to inspect or explain the model. Let's start creating our test/train set and start modeling.
 
-Stratified sample
------------------
+### Stratified sample
 
 Let's create a data partition. First we'll take 4% of the data for training and validation. We'll reserve the indexes so we can further partition later.
 
@@ -233,8 +231,7 @@ prop.table(table(train$Sentiment))
 
 And we have almost exactly the same proportions as our original, much larger, data set.
 
-Tokenization
-------------
+### Tokenization
 
 Let's now tokenize our text data. This is the first step in turning raw text into features. We want the individual words to become features. We'll cleanup some things, engineer some features, and maybe create some combinations of words a little later.
 
@@ -291,8 +288,7 @@ train_tokens[[26]]
     ##  [6] "quot"       "all"        "day"        "everyday"   "believe"   
     ## [11] "that"
 
-Remove Stopwords
-----------------
+### Remove Stopwords
 
 Let's remove stopwords using the quanteda packages built in *stopwords()* function and look at record 26 again.
 
@@ -314,8 +310,7 @@ train_tokens[[29]]
     ## [1] "#asterisk"     "meetme"        "like"          "just"         
     ## [5] "want"          "documentation" "implement"     "either"
 
-Stemming
---------
+### Stemming
 
 Next, we need to stem the tokens. Stemming is a method of getting to the word root. This way, we won't have multiple versions of the same root word. We can illustrate below.
 
@@ -329,8 +324,7 @@ train_tokens[[29]]
 
 You can see that "listened" becomes "listen", and "ticks" becomes "tick", etc.
 
-Create a Document-feature Matrix
---------------------------------
+### Create a Document-Feature Matrix
 
 ``` r
 train_dfm <- dfm(train_tokens, tolower = FALSE)
@@ -413,8 +407,7 @@ names(train_df[60:75])
     ##  [9] "complet"        "wash"           "hand"           "new"           
     ## [13] "orlean"         "X.followfriday" "X.rorubi"       "although"
 
-Setting up for K-fold Cross Validation
---------------------------------------
+### Setting up for K-fold Cross Validation
 
 We will set up a control plan for 30 models. We should be able to use this plan for all our subsequent modeling.
 
@@ -427,8 +420,7 @@ cv_cntrl <- trainControl(method = "repeatedcv", number = 10,
                          repeats = 3, index = cv_folds)
 ```
 
-Train the First Model
----------------------
+### Train the First Model
 
 Let's train the first model to see what kind of accuracy we have. Let's use a single decision tree algorithm. This algorithm will, however, create 30 \* 7 or 210 models.
 
@@ -466,5 +458,4 @@ rpart1
 
 Outputting the model results we see that we have an almost 64% accuracy already. That isn't bad. Really we want to get to about 90% if we can. This is already better than a coin flip and we haven't even begun. Let's take some steps to improve things.
 
-To be continued...
-------------------
+#### To be continued...
