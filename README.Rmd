@@ -1,7 +1,11 @@
 ---
 title: "Sentiment Analysis in Tweets"
-author: "Kevin Bonds: https://www.linkedin.com/in/kevin-bonds/"
-date: "Date modified: `r format(Sys.time(), '%d %B, %Y')`"
+author: |
+        | Kevin Bonds 
+        | https://www.linkedin.com/in/kevin-bonds/
+date: |
+        |
+        | Date modified: `r format(Sys.time(), '%d %B, %Y')`
 output: 
         github_document: default
         html_document: default

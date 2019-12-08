@@ -1,6 +1,7 @@
 Sentiment Analysis in Tweets
 ================
-Kevin Bonds: <https://www.linkedin.com/in/kevin-bonds/>
+Kevin Bonds
+<https://www.linkedin.com/in/kevin-bonds/>
 Date modified: 07 December, 2019
 
 ### Introduction
