@@ -1,10 +1,9 @@
 ---
 title: "Sentiment Analysis in Tweets"
 author: |
-        | Kevin Bonds 
-        | https://www.linkedin.com/in/kevin-bonds/
+        | Kevin Bonds<br>
+        | https://www.linkedin.com/in/kevin-bonds/<br>
 date: |
-        |
         | Date modified: `r format(Sys.time(), '%d %B, %Y')`
 output: 
         github_document: default
