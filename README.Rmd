@@ -207,8 +207,8 @@ There are lots of decisions to be made when doing this sort of text analysis. Do
 
 ```{r}
 # Convert SentimentText column to tokens
-train_tokens <- tokens(train$SentimentText, what = "word", 
-                       remove_numbers = TRUE, remove_punct = TRUE, remove_twitter = FALSE,
+train_tokens <- quanteda::tokens(train$SentimentText, what = "word", 
+                       remove_numbers = TRUE, remove_punct = TRUE, remove_twitter = TRUE,
                        remove_symbols = TRUE, remove_hyphens = TRUE)
 ```
 
